@@ -6,7 +6,7 @@
     <title>Flask API Test</title>
     <script>
         async function sendRequest() {
-            const response = await fetch("https://your-railway-api-url.com/message", {
+            const response = await fetch("https://checkersgpt-production.up.railway.app/message", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: "Name?" })
