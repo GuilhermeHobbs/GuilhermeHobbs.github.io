@@ -3,57 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My API Frontend</title>
+    <title>Name API Demo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
         }
         .container {
-            background-color: #f5f5f5;
+            text-align: center;
             padding: 20px;
-            border-radius: 5px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .result {
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #response {
             margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            font-size: 18px;
+            color: #333;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>API Test Interface</h1>
-        <button onclick="getData()">Gettt Data</button>
-        <div id="result" class="result">Results will appear here...</div>
+        <button onclick="askName()">Ask Name</button>
+        <div id="response"></div>
     </div>
 
     <script>
-        async function getData() {
-            const resultDiv = document.getElementById('result');
+        async function askName() {
             try {
-                // Replace with your Railway API URL
-                const response = await fetch('https://web-production-0dac.up.railway.app/app/data', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Enable CORS from GitHub Pages
-                        'Access-Control-Allow-Origin': '*'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+                // Replace with your Railway API URL and add the question parameter
+                const apiUrl = 'https://web-production-0dac.up.railway.app/ask-name?question=The%20Name?';
+                const response = await fetch(apiUrl);
                 const data = await response.json();
-                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                document.getElementById('response').textContent = data.answer;
             } catch (error) {
-                resultDiv.innerHTML = `Error: ${error.message}`;
                 console.error('Error:', error);
+                document.getElementById('response').textContent = 'Error connecting to the API';
             }
         }
     </script>
