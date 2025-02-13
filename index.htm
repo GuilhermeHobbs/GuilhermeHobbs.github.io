@@ -28,15 +28,16 @@
 </head>
 <body>
     <div class="container">
-        <button onclick="askName()">Askkkk Name</button>
+        <button onclick="askName()">Aaaaaaaaaaask Name</button>
         <div id="response"></div>
     </div>
 
     <script>
         async function askName() {
             try {
+                const question = "The Name?";
                 // Replace with your actual Render API URL
-                const response = await fetch('https://checkerswin.onrender.com/ask-name');
+                const response = await fetch(`https://checkerswin.onrender.com/ask-name?question=${encodeURIComponent(question)}`);
                 const data = await response.text();
                 document.getElementById('response').textContent = data;
             } catch (error) {
