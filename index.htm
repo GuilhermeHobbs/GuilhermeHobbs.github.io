@@ -42,18 +42,21 @@
 </head>
 <body>
     <div class="container">
-        <button onclick="askName()">Ask Name</button>
+        <button onclick="askName()">Aaaask Name</button>
         <div id="response"></div>
     </div>
 
     <script>
         async function askName() {
             try {
-                const response = await fetch('https://checkersgpt-production.up.railway.app/ask-name', {
+                const response = await fetch('https://your-api-url.railway.app/ask-name', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
+                    mode: 'cors',
+                    credentials: 'omit',
                     body: JSON.stringify({ message: "Name?" })
                 });
                 
