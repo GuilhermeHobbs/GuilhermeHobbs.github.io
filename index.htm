@@ -42,7 +42,7 @@
 </head>
 <body>
     <div class="container">
-        <button onclick="askName()">Askkkk Name</button>
+        <button onclick="askName()">Ask Name</button>
         <div id="response"></div>
     </div>
 
@@ -51,7 +51,13 @@
             try {
                 // Replace with your Railway API URL and add the question parameter
                 const apiUrl = 'https://web-production-0dac.up.railway.app/ask-name?question=The%20Name?';
-                const response = await fetch(apiUrl);
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                });
                 const data = await response.json();
                 document.getElementById('response').textContent = data.answer;
             } catch (error) {
