@@ -3,74 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Test Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #response {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #333;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <button onclick="askName()">Asssk Name</button>
-        <div id="response"></div>
-    </div>
-
+    <title>Flask API Test</title>
     <script>
-        async function askName() {
-            const responseDiv = document.getElementById('response');
-            responseDiv.textContent = 'Loading...';
-            
-            try {
-                const response = await fetch('https://checkersgpt-production.up.railway.app/ask-name', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message: "Name?" })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                responseDiv.textContent = data.response;
-            } catch (error) {
-                console.error('Error:', error);
-                responseDiv.textContent = 'Error connecting to the API';
-            }
+        async function sendRequest() {
+            const response = await fetch("https://your-railway-api-url.com/message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: "Name?" })
+            });
+
+            const data = await response.json();
+            document.getElementById("response").innerText = "Response: " + data.reply;
         }
     </script>
+</head>
+<body>
+    <h2>Flask API Teeest</h2>
+    <button onclick="sendRequest()">Send Request</button>
+    <p id="response"></p>
 </body>
 </html>
