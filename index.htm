@@ -232,7 +232,7 @@
             }
 
             function sendMoveRequest(from, to) {
-                const url = `https://checkerswin.onrender.com?a=${from}&b=${to}`;
+                const url = `https://checkerswin.onrender.com/move?a=${from}&b=${to}`;
                 fetch(url)
                     .then(response => {
                         console.log(`Move sent: ${from} -> ${to}`);
