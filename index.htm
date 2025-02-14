@@ -3,34 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Test Page</title>
+    <title>Responsive Interactive Checkers</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
+            background-color: #f0f0f0;
             margin: 0;
+            flex-direction: column;
         }
-        .container {
-            text-align: center;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+
+        .board-container {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            position: relative;
         }
-        #response {
-            margin-top: 20px;
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 5px solid black;
+            position: relative;
+        }
+
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(90vmin / 12);
             font-weight: bold;
+        }
+
+        .black {
+            background-color: black;
+            color: white;
+        }
+
+        .white {
+            background-color: white;
+            color: black;
+        }
+
+        .piece {
+            width: 12%;
+            height: 12%;
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(90vmin / 15);
+            font-weight: bold;
+        }
+
+        .red {
+            background-color: red;
+        }
+
+        .gray {
+            background-color: gray;
+        }
+
+        .piece:active {
+            cursor: grabbing;
+        }
+
+        .frozen {
+            pointer-events: none;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <button onclick="askName()">Aaaaaaaaaaask Name</button>
-        <div id="response"></div>
+    <div class="board-container">
+        <div class="board" id="board"></div>
     </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const board = document.getElementById("board");
+            const boardContainer = document.querySelector(".board-container");
+
+            const boardSize = 8;
+            const redPieces = [1, 3, 5, 7, 10, 12, 14, 16, 17, 19, 21, 23];
+            const grayPieces = [42, 44, 46, 48, 49, 51, 53, 55, 58, 60, 62, 64];
+            
+            let pieces = {};
+            let boardFrozen = false;
+
+            function createBoard() {
+                board.innerHTML = "";
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        let square = document.createElement("div");
+                        let squareNumber = row * boardSize + col + 1;
+                        square.classList.add("square");
+
+                        if ((row + col) % 2 === 0) {
+                            square.classList.add("black");
+                        } else {
+                            square.classList.add("white");
+                        }
+
+                        square.dataset.position = squareNumber;
+                        square.innerText = squareNumber;
+                        board.appendChild(square);
+                    }
+                }
+            }
+
+            function createPieces() {
+                [...redPieces, ...grayPieces].forEach(num => {
+                    let piece = document.createElement("div");
+                    piece.classList.add("piece");
+                    piece.classList.add(redPieces.includes(num) ? "red" : "gray");
+                    piece.dataset.position = num;
+                    pieces[num] = piece;
+                    document.body.appendChild(piece);
+                    positionPiece(piece, num);
+                    
+                    piece.addEventListener("mousedown", dragStart);
+                    piece.addEventListener("dblclick", removePiece);
+                });
+            }
+
+            function positionPiece(piece, position) {
+                let square = document.querySelector(`[data-position="${position}"]`);
+                let rect = square.getBoundingClientRect();
+                let boardRect = boardContainer.getBoundingClientRect();
+                let size = boardRect.width / 8;
+
+                piece.style.width = `${size * 0.75}px`;
+                piece.style.height = `${size * 0.75}px`;
+                piece.style.left = `${rect.left + window.scrollX + size * 0.125}px`;
+                piece.style.top = `${rect.top + window.scrollY + size * 0.125}px`;
+                piece.style.position = "absolute";
+            }
+
+            function updatePiecePositions() {
+                Object.values(pieces).forEach(piece => {
+                    let position = piece.dataset.position;
+                    positionPiece(piece, position);
+                });
+            }
+
+            function removePiece(event) {
+                if (boardFrozen) return;
+                let piece = event.target;
+                let position = piece.dataset.position;
+                piece.remove();
+                delete pieces[position];
+            }
+
+            let draggedPiece = null;
+            let offsetX = 0, offsetY = 0;
+            let initialPosition = null;
+
+            function dragStart(event) {
+                if (boardFrozen) return;
+                draggedPiece = event.target;
+                initialPosition = draggedPiece.dataset.position;
+                offsetX = event.clientX - draggedPiece.getBoundingClientRect().left;
+                offsetY = event.clientY - draggedPiece.getBoundingClientRect().top;
+
+                document.addEventListener("mousemove", dragMove);
+                document.addEventListener("mouseup", dragEnd);
+            }
+
+            function dragMove(event) {
+                if (!draggedPiece || boardFrozen) return;
+
+                draggedPiece.style.left = `${event.clientX - offsetX}px`;
+                draggedPiece.style.top = `${event.clientY - offsetY}px`;
+            }
+
+            function dragEnd() {
+                if (!draggedPiece || boardFrozen) return;
+
+                let closestSquare = null;
+                let minDistance = Infinity;
+
+                document.querySelectorAll(".black").forEach(square => {
+                    let rect = square.getBoundingClientRect();
+                    let centerX = rect.left + rect.width / 2;
+                    let centerY = rect.top + rect.height / 2;
+                    let distance = Math.hypot(
+                        centerX - (draggedPiece.getBoundingClientRect().left + draggedPiece.clientWidth / 2),
+                        centerY - (draggedPiece.getBoundingClientRect().top + draggedPiece.clientHeight / 2)
+                    );
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestSquare = square;
+                    }
+                });
+
+                if (closestSquare) {
+                    let newPosition = closestSquare.dataset.position;
+                    positionPiece(draggedPiece, newPosition);
+                    draggedPiece.dataset.position = newPosition;
+
+                    // Freeze the board and send move request
+                    freezeBoard();
+                    sendMoveRequest(initialPosition, newPosition);
+                }
+
+                draggedPiece = null;
+                document.removeEventListener("mousemove", dragMove);
+                document.removeEventListener("mouseup", dragEnd);
+            }
+
+            function freezeBoard() {
+                boardFrozen = true;
+                document.body.classList.add("frozen");
+            }
+
+            function unfreezeBoard() {
+                boardFrozen = false;
+                document.body.classList.remove("frozen");
+            }
+
+            function sendMoveRequest(from, to) {
+                const url = `https://checkerswin.onrender.com?a=${from}&b=${to}`;
+                fetch(url)
+                    .then(response => {
+                        console.log(`Move sent: ${from} -> ${to}`);
+                        return response.text();
+                    })
+                    .then(data => {
+                        console.log("Response received:", data);
+                        unfreezeBoard();
+                    })
+                    .catch(error => {
+                        console.error("Error sending move request:", error);
+                        unfreezeBoard(); 
+                    });
+            }
+
+            window.addEventListener("resize", updatePiecePositions);
+
+            createBoard();
+            createPieces();
+        });
+    </script>
+
+
 
     <script>
         async function askName() {
