@@ -1,1 +1,575 @@
-HERE IS DIRECT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Interactive Checkers</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            flex-direction: column;
+        }
+
+        .board-container {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 5px solid black;
+            position: relative;
+        }
+
+        .square {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(90vmin / 12);
+            font-weight: bold;
+            z-index: 0;
+            position: relative;
+        }
+
+        .black {
+            background-color: black;
+            color: white;
+        }
+
+        .white {
+            background-color: white;
+            color: black;
+        }
+
+        .piece {
+            width: 12%;
+            height: 12%;
+            border-radius: 50%;
+            position: absolute;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(90vmin / 15);
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .red {
+            background-color: red;
+            color: white;
+            border: 2px solid darkred;
+        }
+
+        .gray {
+            background-color: gray;
+            color: white;
+            border: 2px solid darkgray;
+        }
+
+        .piece:active {
+            cursor: grabbing;
+        }
+
+        .frozen {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="board-container">
+        <div class="board" id="board"></div>
+    </div>
+    <div style="margin-top: 20px;">
+        <button id="newGameBtn" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Novo jogo</button>
+    </div>
+    
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeGame();
+        });
+
+        function initializeGame() {
+            const board = document.getElementById("board");
+            const boardContainer = document.querySelector(".board-container");
+
+            const boardSize = 8;
+            // Pieces are now on white squares (1-32)
+            const redPieces = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            const grayPieces = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+            
+            let pieces = {};
+            let boardFrozen = false;
+            let whiteSquares = {}; // Maps position number to actual square number in the grid
+            let lastClickTime = 0; // Track time of last click for double-click detection
+
+            function createBoard() {
+                board.innerHTML = "";
+                let whiteCounter = 1;
+                
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        let square = document.createElement("div");
+                        let squareNumber = row * boardSize + col + 1;
+                        square.classList.add("square");
+
+                        if ((row + col) % 2 === 0) {
+                            square.classList.add("black");
+                            square.innerText = "";
+                        } else {
+                            square.classList.add("white");
+                            square.innerText = whiteCounter;
+                            square.dataset.position = whiteCounter;
+                            whiteSquares[whiteCounter] = squareNumber;
+                            whiteCounter++;
+                        }
+
+                        board.appendChild(square);
+                    }
+                }
+            }
+
+            function createPieces() {
+                [...redPieces, ...grayPieces].forEach(num => {
+                    let piece = document.createElement("div");
+                    piece.classList.add("piece");
+                    piece.classList.add(redPieces.includes(num) ? "red" : "gray");
+                    piece.dataset.position = num;
+                    pieces[num] = piece;
+                    document.body.appendChild(piece);
+                    
+                    // Add click event for double-click detection
+                    piece.addEventListener("click", handlePieceClick);
+                    piece.addEventListener("mousedown", dragStart);
+                });
+                
+                // Position pieces after they're all created
+                setTimeout(() => {
+                    updatePiecePositions();
+                }, 0);
+            }
+
+            // Handle piece clicks for double-click detection
+            function handlePieceClick(event) {
+                const currentTime = new Date().getTime();
+                const clickTimeDiff = currentTime - lastClickTime;
+                
+                // Check if this is a double-click (time difference less than 300ms)
+                if (clickTimeDiff < 300) {
+                    // This is a double-click, remove the piece
+                    const piece = event.target;
+                    const position = piece.dataset.position;
+                    
+                    console.log(`Double-click detected, removing piece at position ${position}`);
+                    piece.remove();
+                    delete pieces[position];
+                    
+                    // Prevent the mousedown event from firing
+                    event.stopPropagation();
+                }
+                
+                // Update last click time
+                lastClickTime = currentTime;
+            }
+
+            function positionPiece(piece, position, animated = false) {
+                let square = document.querySelector(`[data-position="${position}"]`);
+                if (!square) {
+                    console.error(`Square with data-position="${position}" not found`);
+                    return;
+                }
+                
+                let rect = square.getBoundingClientRect();
+                let boardRect = boardContainer.getBoundingClientRect();
+                let size = boardRect.width / 8;
+
+                // Set or remove transition based on whether the move should be animated
+                if (animated) {
+                    piece.style.transition = "left 0.8s ease, top 0.8s ease";
+                } else {
+                    piece.style.transition = "none";
+                }
+
+                piece.style.width = `${size * 0.75}px`;
+                piece.style.height = `${size * 0.75}px`;
+                piece.style.left = `${rect.left + window.scrollX + size * 0.125}px`;
+                piece.style.top = `${rect.top + window.scrollY + size * 0.125}px`;
+                piece.style.position = "absolute";
+                
+                if (!animated) {
+                    // Force a reflow to ensure the transition is removed before the next animation
+                    void piece.offsetWidth;
+                }
+            }
+
+            function updatePiecePositions() {
+                Object.values(pieces).forEach(piece => {
+                    let position = piece.dataset.position;
+                    positionPiece(piece, position, false);
+                });
+            }
+
+            let draggedPiece = null;
+            let offsetX = 0, offsetY = 0;
+            let initialPosition = null;
+
+            function dragStart(event) {
+                if (boardFrozen) return;
+                
+                // Check if this is a double-click (if so, don't start dragging)
+                const currentTime = new Date().getTime();
+                if (currentTime - lastClickTime < 300 && lastClickTime > 0) {
+                    return;
+                }
+                
+                draggedPiece = event.target;
+                initialPosition = draggedPiece.dataset.position;
+                offsetX = event.clientX - draggedPiece.getBoundingClientRect().left;
+                offsetY = event.clientY - draggedPiece.getBoundingClientRect().top;
+
+                document.addEventListener("mousemove", dragMove);
+                document.addEventListener("mouseup", dragEnd);
+            }
+
+            function dragMove(event) {
+                if (!draggedPiece || boardFrozen) return;
+
+                draggedPiece.style.left = `${event.clientX - offsetX}px`;
+                draggedPiece.style.top = `${event.clientY - offsetY}px`;
+            }
+
+            function dragEnd(event) {
+                if (!draggedPiece || boardFrozen) return;
+
+                let closestSquare = null;
+                let minDistance = Infinity;
+
+                document.querySelectorAll(".white").forEach(square => {
+                    let rect = square.getBoundingClientRect();
+                    let centerX = rect.left + rect.width / 2;
+                    let centerY = rect.top + rect.height / 2;
+                    let distance = Math.hypot(
+                        centerX - (draggedPiece.getBoundingClientRect().left + draggedPiece.clientWidth / 2),
+                        centerY - (draggedPiece.getBoundingClientRect().top + draggedPiece.clientHeight / 2)
+                    );
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestSquare = square;
+                    }
+                });
+
+                if (closestSquare) {
+                    let newPosition = parseInt(closestSquare.dataset.position);
+                    let fromPosition = parseInt(initialPosition);
+                    
+                    // Only process the move if the piece moved to a different square
+                    if (newPosition !== fromPosition) {
+                        // Position the piece immediately (no animation for user moves)
+                        positionPiece(draggedPiece, newPosition, false);
+                        draggedPiece.dataset.position = newPosition;
+
+                        // Check if we need to remove a piece (jump)
+                        if (Math.abs(fromPosition - newPosition) > 5) {
+                            // Calculate the piece to remove
+                            let pieceToRemovePos;
+                            if ((fromPosition + newPosition) % 16 < 8) {
+                                pieceToRemovePos = Math.floor((fromPosition + newPosition) / 2);
+                            } else {
+                                pieceToRemovePos = Math.ceil((fromPosition + newPosition) / 2);
+                            }
+                            
+                            // Find and remove that piece immediately (no animation)
+                            const pieceToRemove = Object.values(pieces).find(piece => 
+                                parseInt(piece.dataset.position) === pieceToRemovePos);
+                            
+                            if (pieceToRemove) {
+                                console.log(`Removing piece at position ${pieceToRemovePos}`);
+                                pieceToRemove.remove();
+                                delete pieces[pieceToRemovePos];
+                            } else {
+                                console.warn(`No piece found at position ${pieceToRemovePos} to remove`);
+                            }
+                        }
+
+                        // Check if this is a gray piece
+                        const isGrayPiece = draggedPiece.classList.contains("gray");
+                        
+                        if (isGrayPiece) {
+                            // Don't call API for gray pieces
+                            console.log("Gray piece moved, no API call needed");
+                        } else {
+                            // Only freeze the board and send move request for red pieces
+                            freezeBoard();
+                            
+                            // If this is a jump move (abs difference > 5), use the special format
+                            if (Math.abs(fromPosition - newPosition) > 5) {
+                                sendMoveRequest(fromPosition, newPosition, true);
+                            } else {
+                                sendMoveRequest(fromPosition, newPosition, false);
+                            }
+                        }
+                    } else {
+                        // Return the piece to its original position if not moved
+                        positionPiece(draggedPiece, fromPosition, false);
+                        console.log("Piece clicked but not moved to a different square");
+                    }
+                } else {
+                    // If no valid square found, return to original position
+                    positionPiece(draggedPiece, initialPosition, false);
+                }
+
+                draggedPiece = null;
+                document.removeEventListener("mousemove", dragMove);
+                document.removeEventListener("mouseup", dragEnd);
+            }
+
+            function freezeBoard() {
+                boardFrozen = true;
+                document.body.classList.add("frozen");
+            }
+
+            function unfreezeBoard() {
+                boardFrozen = false;
+                document.body.classList.remove("frozen");
+            }
+
+            // Function to process a sequence of moves with jumps
+            function processMoveSequence(parts, startIndex) {
+                if (startIndex >= parts.length - 2) return; // No more complete moves to process
+                
+                // Process the current move in the sequence
+                const responseFrom = parseInt(parts[startIndex]);
+                const responseTo = parseInt(parts[startIndex + 2]);
+                
+                if (isNaN(responseFrom) || isNaN(responseTo)) return;
+                
+                // Find the piece to move
+                const pieceToMove = Object.values(pieces).find(piece => 
+                    parseInt(piece.dataset.position) === responseFrom);
+                
+                if (!pieceToMove) {
+                    console.warn(`No piece found at position ${responseFrom}`);
+                    return;
+                }
+                
+                console.log(`Moving piece from ${responseFrom} to ${responseTo} based on API jump response`);
+                
+                // Calculate the piece to remove using the formula
+                let pieceToRemovePos;
+                if ((responseFrom + responseTo) % 16 < 8) {
+                    pieceToRemovePos = Math.floor((responseFrom + responseTo) / 2);
+                } else {
+                    pieceToRemovePos = Math.ceil((responseFrom + responseTo) / 2);
+                }
+                
+                // Find the piece to remove
+                const pieceToRemove = Object.values(pieces).find(piece => 
+                    parseInt(piece.dataset.position) === pieceToRemovePos);
+                
+                // First animate the piece movement
+                setTimeout(() => {
+                    // Don't update position data until after animation starts
+                    // Animate the piece movement
+                    positionPiece(pieceToMove, responseTo, true);
+                    
+                    // Update position data after starting the animation
+                    setTimeout(() => {
+                        pieceToMove.dataset.position = responseTo;
+                        
+                        // Animate removal if a piece was found
+                        if (pieceToRemove) {
+                            console.log(`Removing piece at position ${pieceToRemovePos}`);
+                            pieceToRemove.style.transition = "opacity 0.5s ease";
+                            pieceToRemove.style.opacity = "0";
+                            
+                            setTimeout(() => {
+                                pieceToRemove.remove();
+                                delete pieces[pieceToRemovePos];
+                                
+                                // Process the next move in the sequence after delay, only after the current move is complete
+                                if (startIndex + 4 < parts.length && parts[startIndex + 3] === "33") {
+                                    setTimeout(() => {
+                                        processMoveSequence(parts, startIndex + 2);
+                                    }, 500); // Delay between sequential moves
+                                }
+                            }, 500);
+                        } else {
+                            console.warn(`No piece found at position ${pieceToRemovePos} to remove`);
+                            // Still process the next move if there is one, even if no piece was removed
+                            if (startIndex + 4 < parts.length && parts[startIndex + 3] === "33") {
+                                setTimeout(() => {
+                                    processMoveSequence(parts, startIndex + 2);
+                                }, 800); // Delay between sequential moves
+                            }
+                        }
+                    }, 400); // Wait for movement animation to be well underway
+                }, 50);
+            }
+
+            function sendMoveRequest(from, to, isJump) {
+                // For jump moves, use the format a=x&b=33&c=y
+                let url;
+                if (isJump) {
+                    url = `https://checkerswin.onrender.com/move?a=${from}&b=33&c=${to}`;
+                } else {
+                    url = `https://checkerswin.onrender.com/move?a=${from}&b=${to}`;
+                }
+                fetch(url)
+                    .then(response => {
+                        console.log(`Move sent: ${from} -> ${to}`);
+                        return response.text();
+                    })
+                    .then(data => {
+                        console.log("Response received:", data);
+                        
+                        // Check if response is in the format a-b (simple move)
+                        if (data && data.includes('-')) {
+                            // Check if it's a jump format "a-33-b" or "a-33-b-33-c"
+                            if (data.includes('-33-')) {
+                                const parts = data.split('-');
+                                
+                                // Process the first move in the sequence
+                                processMoveSequence(parts, 0);
+                            } else {
+                                // Regular move format a-b
+                                const [responseFrom, responseTo] = data.split('-').map(Number);
+                                if (!isNaN(responseFrom) && !isNaN(responseTo)) {
+                                    // Find the piece at position responseFrom
+                                    const pieceToMove = Object.values(pieces).find(piece => 
+                                        parseInt(piece.dataset.position) === responseFrom);
+                                    
+                                    if (pieceToMove) {
+                                        console.log(`Moving piece from ${responseFrom} to ${responseTo} based on API response`);
+                                        
+                                        // Mark that this piece should be animated
+                                        pieceToMove.dataset.animated = "true";
+                                        
+                                        // Update the position data but don't reposition yet (for animation)
+                                        pieceToMove.dataset.position = responseTo;
+                                        
+                                        // Animate the piece movement
+                                        setTimeout(() => {
+                                            positionPiece(pieceToMove, responseTo, true);
+                                        }, 50); // Small delay to ensure animation works
+                                    } else {
+                                        console.warn(`No piece found at position ${responseFrom}`);
+                                    }
+                                }
+                            }
+                        }
+                        // Check if response is in the format a=x&b=33&c=y (jump move)
+                        else if (data && data.includes('a=') && data.includes('b=33') && data.includes('c=')) {
+                            // Parse the parameters
+                            const params = new URLSearchParams(data);
+                            const responseFrom = parseInt(params.get('a'));
+                            const responseTo = parseInt(params.get('c'));
+                            
+                            if (!isNaN(responseFrom) && !isNaN(responseTo)) {
+                                // Find the piece at position responseFrom
+                                const pieceToMove = Object.values(pieces).find(piece => 
+                                    parseInt(piece.dataset.position) === responseFrom);
+                                
+                                if (pieceToMove) {
+                                    console.log(`Moving piece from ${responseFrom} to ${responseTo} based on API jump response`);
+                                    
+                                    // Mark that this piece should be animated
+                                    pieceToMove.dataset.animated = "true";
+                                    
+                                    // Animate the piece movement first
+                                    setTimeout(() => {
+                                        positionPiece(pieceToMove, responseTo, true);
+                                        
+                                        // Update position data after animation starts
+                                        setTimeout(() => {
+                                            pieceToMove.dataset.position = responseTo;
+                                        }, 100);
+                                    }, 50); // Small delay to ensure animation works
+                                    
+                                    // Calculate the piece to remove using the formula
+                                    let pieceToRemovePos;
+                                    if ((responseFrom + responseTo) % 16 < 8) {
+                                        pieceToRemovePos = Math.floor((responseFrom + responseTo) / 2);
+                                    } else {
+                                        pieceToRemovePos = Math.ceil((responseFrom + responseTo) / 2);
+                                    }
+                                    
+                                    // Find and animate removal of the captured piece
+                                    const pieceToRemove = Object.values(pieces).find(piece => 
+                                        parseInt(piece.dataset.position) === pieceToRemovePos);
+                                    
+                                    if (pieceToRemove) {
+                                        console.log(`Removing piece at position ${pieceToRemovePos}`);
+                                        
+                                        // Animate the piece removal
+                                        pieceToRemove.style.transition = "opacity 0.5s ease";
+                                        pieceToRemove.style.opacity = "0";
+                                        
+                                        // Actually remove after animation completes
+                                        setTimeout(() => {
+                                            pieceToRemove.remove();
+                                            delete pieces[pieceToRemovePos];
+                                        }, 500);
+                                    } else {
+                                        console.warn(`No piece found at position ${pieceToRemovePos} to remove`);
+                                    }
+                                } else {
+                                    console.warn(`No piece found at position ${responseFrom}`);
+                                }
+                            }
+                        }
+                        
+                        unfreezeBoard();
+                    })
+                    .catch(error => {
+                        console.error("Error sending move request:", error);
+                        unfreezeBoard(); 
+                    });
+            }
+
+            // New Game button functionality
+            document.getElementById("newGameBtn").addEventListener("click", () => {
+                freezeBoard();
+                const url = `https://checkerswin.onrender.com/move?a=0`;
+                fetch(url)
+                    .then(response => {
+                        console.log("New game request sent");
+                        return response.text();
+                    })
+                    .then(data => {
+                        console.log("Response received:", data);
+                        // Refresh the page after receiving response
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error("Error sending new game request:", error);
+                        unfreezeBoard();
+                        // Still try to refresh even if there was an error
+                        window.location.reload();
+                    });
+            });
+
+            // Handle window resize
+            window.addEventListener("resize", updatePiecePositions);
+
+            // Initialize the game
+            createBoard();
+            createPieces();
+        }
+    </script>
+</body>
+</html>
