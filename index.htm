@@ -108,9 +108,10 @@
         const boardContainer = document.querySelector(".board-container");
 
         const boardSize = 8;
-        // Pieces are on white squares (1-32)
-        const redPieces = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        // Pieces are on white squares (1-32), but now in reverse order
+        // The gray pieces will now be on top (higher numbers 21-32)
         const grayPieces = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
+        const redPieces = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         
         let pieces = {};
         let boardFrozen = false;
@@ -257,7 +258,7 @@
 
         function createBoard() {
             board.innerHTML = "";
-            let whiteCounter = 1;
+            let whiteCounter = 32; // Start from 32 and decrease to 1
             
             for (let row = 0; row < boardSize; row++) {
                 for (let col = 0; col < boardSize; col++) {
@@ -273,7 +274,7 @@
                         square.innerText = whiteCounter;
                         square.dataset.position = whiteCounter;
                         whiteSquares[whiteCounter] = squareNumber;
-                        whiteCounter++;
+                        whiteCounter--; // Decrease to get numbering from 32 to 1
                     }
 
                     board.appendChild(square);
