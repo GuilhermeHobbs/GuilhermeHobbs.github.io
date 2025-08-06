@@ -5,22 +5,75 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Responsive Interactive Checkers</title>
 <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
     body {
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        background-color: #f0f0f0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         margin: 0;
-        flex-direction: column;
+        font-family: 'Arial', sans-serif;
+        position: relative;
+        overflow-x: hidden;
+        padding: 20px;
+    }
+
+    /* Animated background pattern */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+        animation: float 20s ease-in-out infinite;
+        z-index: -1;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        33% { transform: translateY(-20px) rotate(1deg); }
+        66% { transform: translateY(10px) rotate(-1deg); }
+    }
+
+    .game-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        max-width: 1200px;
     }
 
     .board-container {
-        width: 90vmin;
-        height: 90vmin;
-        max-width: 600px;
-        max-height: 600px;
+        width: 70vmin;
+        height: 70vmin;
+        max-width: 500px;
+        max-height: 500px;
         position: relative;
+        flex-shrink: 0;
+    }
+
+    .side-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        min-width: 250px;
     }
 
     .board {
@@ -29,28 +82,42 @@
         grid-template-rows: repeat(8, 1fr);
         width: 100%;
         height: 100%;
-        border: 5px solid black;
+        border: 5px solid #2c3e50;
+        border-radius: 10px;
         position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .square {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: calc(90vmin / 12);
+        font-size: calc(70vmin / 16);
         font-weight: bold;
         z-index: 0;
         position: relative;
+        transition: all 0.3s ease;
     }
 
     .black {
-        background-color: black;
-        color: white;
+        background-color: #8b4513;
+        color: #f4f4f4;
+        background-image: 
+            linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%), 
+            linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%);
+        background-size: 4px 4px;
     }
 
     .white {
-        background-color: white;
-        color: black;
+        background-color: #f5deb3;
+        color: #8b4513;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .square:hover {
+        filter: brightness(1.1);
     }
 
     .piece {
@@ -62,75 +129,331 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: calc(90vmin / 15);
+        font-size: calc(70vmin / 15);
         font-weight: bold;
-        opacity: 0.8;
+        opacity: 0.9;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .piece:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     }
 
     .red {
-        background-color: red;
+        background: linear-gradient(145deg, #e74c3c, #c0392b);
         color: white;
-        border: 2px solid darkred;
+        border: 3px solid #a93226;
     }
 
     .gray {
-        background-color: gray;
+        background: linear-gradient(145deg, #95a5a6, #7f8c8d);
         color: white;
-        border: 2px solid darkgray;
+        border: 3px solid #5d6d7e;
     }
 
     .piece:active {
         cursor: grabbing;
+        transform: scale(0.95);
     }
 
     .frozen {
         pointer-events: none;
-        opacity: 0.5;
+        opacity: 0.7;
+    }
+
+    .game-title {
+        text-align: center;
+        color: white;
+        font-size: 2.5em;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+    }
+
+    #newGameBtn {
+        background: linear-gradient(145deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+        min-width: 150px;
+    }
+
+    #newGameBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+        background: linear-gradient(145deg, #5dade2, #3498db);
+    }
+
+    #newGameBtn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    #newGameBtn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    #newGameBtn:hover::before {
+        left: 100%;
+    }
+
+    .empty-board-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: rgba(139, 69, 19, 0.6);
+        font-size: 1.2em;
+        font-weight: bold;
+        pointer-events: none;
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.3);
+    }
+
+    @media (max-width: 1024px) {
+        .game-container {
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .board-container {
+            width: 80vmin;
+            height: 80vmin;
+        }
+        
+        .side-panel {
+            min-width: auto;
+            gap: 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .game-container {
+            padding: 15px;
+            margin: 10px;
+        }
+        
+        .board-container {
+            width: 85vmin;
+            height: 85vmin;
+            max-width: 400px;
+            max-height: 400px;
+        }
+        
+        .game-title {
+            font-size: 2em;
+        }
+        
+        #newGameBtn {
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .board-container {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 350px;
+            max-height: 350px;
+        }
+        
+        .game-title {
+            font-size: 1.5em;
+        }
+    }
+
+    /* Loading animation */
+    .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-left: 10px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
 </style>
 </head>
 <body>
-    <div class="board-container">
-        <div class="board" id="board"></div>
-    </div>
-    <div style="margin-top: 20px;">
-        <button id="newGameBtn" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Novo jogo</button>
+    <div class="game-container">
+        <div class="board-container">
+            <div class="board" id="board">
+                <div class="empty-board-message" id="emptyMessage">
+                    Clique em "Novo Jogo" para começar
+                </div>
+            </div>
+        </div>
+        <div class="side-panel">
+            <h1 class="game-title">Jogo de Damas</h1>
+            <button id="newGameBtn">
+                <span id="btnText">Novo Jogo</span>
+            </button>
+        </div>
     </div>
     
     <script>
     // Wait for DOM to be fully loaded
     document.addEventListener("DOMContentLoaded", () => {
-        initializeGame();
+        let gameInitialized = false;
+        initializeEmptyBoard();
+        
+        // New Game button functionality
+        document.getElementById("newGameBtn").addEventListener("click", () => {
+            if (!gameInitialized) {
+                initializeGame();
+                gameInitialized = true;
+            } else {
+                restartGame();
+            }
+        });
     });
 
+    function initializeEmptyBoard() {
+        const board = document.getElementById("board");
+        const boardSize = 8;
+        let whiteCounter = 32;
+        
+        // Clear board and show empty message
+        board.innerHTML = '<div class="empty-board-message" id="emptyMessage">Clique em "Novo Jogo" para começar</div>';
+        
+        for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+                let square = document.createElement("div");
+                square.classList.add("square");
+
+                if ((row + col) % 2 === 0) {
+                    square.classList.add("black");
+                    square.innerText = "";
+                } else {
+                    square.classList.add("white");
+                    square.dataset.position = whiteCounter;
+                    square.innerText = ""; // Don't show numbers initially
+                    whiteCounter--;
+                }
+
+                board.appendChild(square);
+            }
+        }
+    }
+
+    function showLoading() {
+        const btnText = document.getElementById("btnText");
+        btnText.innerHTML = 'Iniciando... <div class="loading"></div>';
+        document.getElementById("newGameBtn").disabled = true;
+    }
+
+    function hideLoading() {
+        const btnText = document.getElementById("btnText");
+        btnText.textContent = "Novo Jogo";
+        document.getElementById("newGameBtn").disabled = false;
+    }
+
+    function restartGame() {
+        showLoading();
+        
+        // Clear existing pieces
+        Object.values(pieces).forEach(piece => {
+            piece.remove();
+        });
+        pieces = {};
+        
+        const url = `https://palamedes.onrender.com/move?move=`;
+        fetch(url)
+            .then(response => {
+                console.log("New game request sent");
+                return response.text();
+            })
+            .then(data => {
+                console.log("Response received:", data);
+                hideLoading();
+                // Recreate pieces
+                createPieces();
+            })
+            .catch(error => {
+                console.error("Error sending new game request:", error);
+                hideLoading();
+                // Still create pieces even if API fails
+                createPieces();
+            });
+    }
+
     function initializeGame() {
+        showLoading();
+        
+        // Hide empty message
+        const emptyMessage = document.getElementById("emptyMessage");
+        if (emptyMessage) {
+            emptyMessage.style.display = "none";
+        }
+        
+        // Initialize game with API call
+        const url = `https://palamedes.onrender.com/move?move=`;
+        fetch(url)
+            .then(response => {
+                console.log("New game request sent");
+                return response.text();
+            })
+            .then(data => {
+                console.log("Response received:", data);
+                hideLoading();
+                setupGameLogic();
+            })
+            .catch(error => {
+                console.error("Error sending new game request:", error);
+                hideLoading();
+                // Initialize game even if API fails
+                setupGameLogic();
+            });
+    }
+
+    function setupGameLogic() {
         const board = document.getElementById("board");
         const boardContainer = document.querySelector(".board-container");
 
         const boardSize = 8;
-        // Pieces are on white squares (1-32), but now in reverse order
-        // The gray pieces will now be on top (higher numbers 21-32)
         const grayPieces = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
         const redPieces = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         
-        let pieces = {};
         let boardFrozen = false;
-        let whiteSquares = {}; // Maps position number to actual square number in the grid
+        let whiteSquares = {};
 
         // Track multi-jump sequences
         let jumpSequence = null;
         let jumpTimer = null;
         let lastMovedPiece = null;
-        const JUMP_TIMEOUT = 4000; // 4 seconds in milliseconds
+        const JUMP_TIMEOUT = 4000;
 
-        // Copy of original pieces for tracking state changes
         let pieceLocations = {};
-        
-        // Maintain a visual map of pieces by their position for quick lookups
         let piecesByPosition = {};
 
         function updatePieceLocations() {
-            // Create a fresh copy of current piece positions
             pieceLocations = {};
             piecesByPosition = {};
             
@@ -141,23 +464,19 @@
             });
         }
 
-        // Call when pieces might be desynchronized to force a refresh
         function rebuildPiecesState() {
-            // Clear any pieces that might be duplicated at the same position
             let positionsOccupied = {};
             let piecesToRemove = [];
             
             Object.entries(pieces).forEach(([id, piece]) => {
                 const position = parseInt(piece.dataset.position);
                 if (positionsOccupied[position]) {
-                    // This is a duplicate, mark for removal
                     piecesToRemove.push(id);
                 } else {
                     positionsOccupied[position] = id;
                 }
             });
             
-            // Remove duplicates
             piecesToRemove.forEach(id => {
                 if (pieces[id]) {
                     pieces[id].remove();
@@ -165,17 +484,13 @@
                 }
             });
             
-            // Update locations after cleanup
             updatePieceLocations();
         }
 
-        // Function to safely remove a piece by position
         function removePieceAtPosition(position) {
             position = parseInt(position);
-            // Try finding piece by position map first (faster)
             let pieceToRemove = piecesByPosition[position];
             
-            // If not found, search through all pieces
             if (!pieceToRemove) {
                 pieceToRemove = Object.values(pieces).find(piece => 
                     parseInt(piece.dataset.position) === position);
@@ -183,14 +498,11 @@
             
             if (pieceToRemove) {
                 console.log(`Removing piece at position ${position}`);
-                // Animate removal
                 pieceToRemove.style.transition = "opacity 0.5s ease";
                 pieceToRemove.style.opacity = "0";
                 
-                // Get piece ID for later removal
                 const pieceId = Object.keys(pieces).find(id => pieces[id] === pieceToRemove);
                 
-                // Actually remove the piece after animation
                 setTimeout(() => {
                     pieceToRemove.remove();
                     if (pieceId) {
@@ -200,104 +512,10 @@
                 }, 500);
                 
                 return true;
-            } else {
-                // Try finding by visual location as fallback
-                const capturedSquare = document.querySelector(`[data-position="${position}"]`);
-                if (!capturedSquare) {
-                    console.warn(`No square found with position=${position}`);
-                    return false;
-                }
-                
-                const capturedRect = capturedSquare.getBoundingClientRect();
-                const capturedCenterX = capturedRect.left + capturedRect.width / 2;
-                const capturedCenterY = capturedRect.top + capturedRect.height / 2;
-                
-                // Find any piece that visually overlaps this position
-                let overlappingPiece = null;
-                
-                Object.values(pieces).forEach(piece => {
-                    const pieceRect = piece.getBoundingClientRect();
-                    const pieceCenterX = pieceRect.left + pieceRect.width / 2;
-                    const pieceCenterY = pieceRect.top + pieceRect.height / 2;
-                    
-                    // Check if the piece center is close to the square center
-                    const distance = Math.hypot(
-                        capturedCenterX - pieceCenterX,
-                        capturedCenterY - pieceCenterY
-                    );
-                    
-                    if (distance < capturedRect.width * 0.5) {
-                        overlappingPiece = piece;
-                    }
-                });
-                
-                if (overlappingPiece) {
-                    console.log(`Found piece visually at position ${position}`);
-                    overlappingPiece.style.transition = "opacity 0.5s ease";
-                    overlappingPiece.style.opacity = "0";
-                    
-                    const pieceId = Object.keys(pieces).find(
-                        id => pieces[id] === overlappingPiece
-                    );
-                    
-                    setTimeout(() => {
-                        overlappingPiece.remove();
-                        if (pieceId) {
-                            delete pieces[pieceId];
-                        }
-                        updatePieceLocations();
-                    }, 500);
-                    
-                    return true;
-                }
-                
-                console.warn(`No piece found at position ${position} to remove`);
-                return false;
             }
-        }
-
-        function createBoard() {
-            board.innerHTML = "";
-            let whiteCounter = 32; // Start from 32 and decrease to 1
             
-            for (let row = 0; row < boardSize; row++) {
-                for (let col = 0; col < boardSize; col++) {
-                    let square = document.createElement("div");
-                    let squareNumber = row * boardSize + col + 1;
-                    square.classList.add("square");
-
-                    if ((row + col) % 2 === 0) {
-                        square.classList.add("black");
-                        square.innerText = "";
-                    } else {
-                        square.classList.add("white");
-                        square.innerText = whiteCounter;
-                        square.dataset.position = whiteCounter;
-                        whiteSquares[whiteCounter] = squareNumber;
-                        whiteCounter--; // Decrease to get numbering from 32 to 1
-                    }
-
-                    board.appendChild(square);
-                }
-            }
-        }
-
-        function createPieces() {
-            [...redPieces, ...grayPieces].forEach(num => {
-                let piece = document.createElement("div");
-                piece.classList.add("piece");
-                piece.classList.add(redPieces.includes(num) ? "red" : "gray");
-                piece.dataset.position = num;
-                pieces[num] = piece;
-                document.body.appendChild(piece);
-                
-                piece.addEventListener("mousedown", dragStart);
-            });
-            
-            // Position pieces after they're all created
-            setTimeout(() => {
-                updatePiecePositions();
-            }, 0);
+            console.warn(`No piece found at position ${position} to remove`);
+            return false;
         }
 
         function positionPiece(piece, position, animated = false) {
@@ -311,7 +529,6 @@
             let boardRect = boardContainer.getBoundingClientRect();
             let size = boardRect.width / 8;
 
-            // Set or remove transition based on whether the move should be animated
             if (animated) {
                 piece.style.transition = "left 0.8s ease, top 0.8s ease";
             } else {
@@ -325,7 +542,6 @@
             piece.style.position = "absolute";
             
             if (!animated) {
-                // Force a reflow to ensure the transition is removed before the next animation
                 void piece.offsetWidth;
             }
         }
@@ -336,7 +552,6 @@
                 positionPiece(piece, position, false);
             });
             
-            // Update tracking of piece locations
             updatePieceLocations();
         }
 
@@ -387,15 +602,11 @@
                 let newPosition = parseInt(closestSquare.dataset.position);
                 let fromPosition = parseInt(initialPosition);
                 
-                // Only process the move if the piece moved to a different square
                 if (newPosition !== fromPosition) {
-                    // Position the piece immediately (no animation for user moves)
                     positionPiece(draggedPiece, newPosition, false);
                     draggedPiece.dataset.position = newPosition;
 
-                    // Check if we need to remove a piece (jump)
                     if (Math.abs(fromPosition - newPosition) > 5) {
-                        // Calculate the piece to remove
                         let pieceToRemovePos;
                         if ((fromPosition + newPosition) % 16 < 8) {
                             pieceToRemovePos = Math.floor((fromPosition + newPosition) / 2);
@@ -403,24 +614,16 @@
                             pieceToRemovePos = Math.ceil((fromPosition + newPosition) / 2);
                         }
                         
-                        // Remove that piece
                         removePieceAtPosition(pieceToRemovePos);
-                    }
-
-                    // Send move request (but don't freeze board yet)
-                    // Board will be frozen if no additional moves are made within timeout
-                    if (Math.abs(fromPosition - newPosition) > 5) {
                         sendMoveRequest(fromPosition, newPosition, true);
                     } else {
                         sendMoveRequest(fromPosition, newPosition, false);
                     }
                 } else {
-                    // Return the piece to its original position if not moved
                     positionPiece(draggedPiece, fromPosition, false);
                     console.log("Piece clicked but not moved to a different square");
                 }
             } else {
-                // If no valid square found, return to original position
                 positionPiece(draggedPiece, initialPosition, false);
             }
 
@@ -439,17 +642,14 @@
             document.body.classList.remove("frozen");
         }
 
-        // Function to process a sequence of moves with jumps
         function processMoveSequence(parts, startIndex) {
-            if (startIndex >= parts.length - 2) return; // No more complete moves to process
+            if (startIndex >= parts.length - 2) return;
             
-            // Process the current move in the sequence
             const responseFrom = parseInt(parts[startIndex]);
             const responseTo = parseInt(parts[startIndex + 2]);
             
             if (isNaN(responseFrom) || isNaN(responseTo)) return;
             
-            // Find the piece to move
             let pieceToMove = piecesByPosition[responseFrom];
             
             if (!pieceToMove) {
@@ -458,19 +658,7 @@
             }
             
             if (!pieceToMove) {
-                console.warn(`No piece found at position ${responseFrom}, trying by id`);
-                // Try by ID if position doesn't match
-                const pieceId = Object.keys(pieceLocations).find(
-                    id => pieceLocations[id] === responseFrom && pieces[id]
-                );
-                if (pieceId) {
-                    pieceToMove = pieces[pieceId];
-                }
-            }
-            
-            if (!pieceToMove) {
                 console.warn(`No piece found at position ${responseFrom}`);
-                // Skip to next move if there is one
                 if (startIndex + 4 < parts.length && parts[startIndex + 3] === "33") {
                     setTimeout(() => {
                         processMoveSequence(parts, startIndex + 2);
@@ -481,15 +669,6 @@
             
             console.log(`Moving piece from ${responseFrom} to ${responseTo} based on API jump response`);
             
-            // Make sure there's no piece already at the destination
-            const existingPieceAtDest = piecesByPosition[responseTo];
-            
-            if (existingPieceAtDest && existingPieceAtDest !== pieceToMove) {
-                console.warn(`Found existing piece at destination ${responseTo}, removing it first`);
-                removePieceAtPosition(responseTo);
-            }
-            
-            // Calculate the piece to remove using the formula
             let pieceToRemovePos;
             if ((responseFrom + responseTo) % 16 < 8) {
                 pieceToRemovePos = Math.floor((responseFrom + responseTo) / 2);
@@ -497,30 +676,14 @@
                 pieceToRemovePos = Math.ceil((responseFrom + responseTo) / 2);
             }
             
-            // First animate the piece movement
             setTimeout(() => {
-                // Update the data position
                 pieceToMove.dataset.position = responseTo;
-                
-                // Animate the piece movement
                 positionPiece(pieceToMove, responseTo, true);
                 
-                // Find all pieces at current positions to check for conflicts
-                Object.values(pieces).forEach(piece => {
-                    if (piece !== pieceToMove && parseInt(piece.dataset.position) === responseTo) {
-                        console.warn(`Found conflicting piece at ${responseTo}, removing it`);
-                        removePieceAtPosition(responseTo);
-                    }
-                });
-                
-                // Update position data after starting the animation
                 setTimeout(() => {
                     updatePieceLocations();
-                    
-                    // Remove the captured piece after movement is underway
                     const pieceCaptured = removePieceAtPosition(pieceToRemovePos);
                     
-                    // Schedule the next move in the sequence if there is one
                     if (startIndex + 4 < parts.length && parts[startIndex + 3] === "33") {
                         setTimeout(() => {
                             processMoveSequence(parts, startIndex + 2);
@@ -530,26 +693,18 @@
             }, 50);
         }
 
-        // Function to process API responses
         function processApiResponse(data) {
             console.log("Response received:", data);
             
-            // Check if response is in the format a-b (simple move)
             if (data && data.includes('-')) {
-                // Call the rebuild function to clean up any desynchronized state
                 rebuildPiecesState();
                 
-                // Check if it's a jump format "a-33-b" or "a-33-b-33-c"
                 if (data.includes('-33-')) {
                     const parts = data.split('-');
-                    
-                    // Process the first move in the sequence
                     processMoveSequence(parts, 0);
                 } else {
-                    // Regular move format a-b
                     const [responseFrom, responseTo] = data.split('-').map(Number);
                     if (!isNaN(responseFrom) && !isNaN(responseTo)) {
-                        // Find the piece at position responseFrom
                         let pieceToMove = piecesByPosition[responseFrom];
                         
                         if (!pieceToMove) {
@@ -557,45 +712,17 @@
                                 parseInt(piece.dataset.position) === responseFrom);
                         }
                         
-                        // If not found, try finding by pieceId (original position)
-                        if (!pieceToMove) {
-                            console.warn(`No piece found at position ${responseFrom}, looking by id`);
-                            const pieceId = Object.keys(pieceLocations).find(
-                                id => pieceLocations[id] === responseFrom && pieces[id]
-                            );
-                            
-                            if (pieceId) {
-                                pieceToMove = pieces[pieceId];
-                            } else {
-                                console.error(`Cannot find piece at position ${responseFrom}`);
-                            }
-                        }
-                        
                         if (pieceToMove) {
                             console.log(`Moving piece from ${responseFrom} to ${responseTo} based on API response`);
-                            
-                            // Make sure there's no piece already at the destination
-                            const existingPieceAtDest = piecesByPosition[responseTo];
-                            
-                            if (existingPieceAtDest && existingPieceAtDest !== pieceToMove) {
-                                console.warn(`Found existing piece at destination ${responseTo}, removing it first`);
-                                removePieceAtPosition(responseTo);
-                            }
-                            
-                            // Update data position first to ensure state consistency
                             pieceToMove.dataset.position = responseTo;
                             
-                            // Animate the piece movement
                             setTimeout(() => {
                                 positionPiece(pieceToMove, responseTo, true);
                                 
-                                // Update tracking after animation completes
                                 setTimeout(() => {
                                     updatePieceLocations();
                                 }, 800);
-                            }, 50); // Small delay to ensure animation works
-                        } else {
-                            console.warn(`No piece found at position ${responseFrom}`);
+                            }, 50);
                         }
                     }
                 }
@@ -605,31 +732,25 @@
         }
 
         function sendMoveRequest(from, to, isJump) {
-            // Ensure from and to are valid numbers before sending
             if (isNaN(from) || isNaN(to) || from === null || to === null) {
                 console.error(`Invalid move parameters: from=${from}, to=${to}`);
                 return;
             }
             
-            // Clear any pending jump timer
             if (jumpTimer) {
                 clearTimeout(jumpTimer);
                 jumpTimer = null;
             }
             
-            // For a new move or first jump in sequence
             if (!jumpSequence) {
                 if (isJump) {
-                    // Start a new jump sequence
                     jumpSequence = `${from}-33-${to}`;
-                    lastMovedPiece = to; // Track the piece for potential continued jumps
+                    lastMovedPiece = to;
                     
-                    // Set a timer to send the request after 4 seconds if no more jumps
                     jumpTimer = setTimeout(() => {
-                        // Send the jump sequence - only if it's a valid sequence
                         if (jumpSequence) {
                             const url = `https://palamedes.onrender.com/move?move=${jumpSequence}`;
-                            freezeBoard(); // Freeze the board while waiting for API response
+                            freezeBoard();
                             
                             fetch(url)
                                 .then(response => {
@@ -645,15 +766,13 @@
                                 });
                         }
                             
-                        // Reset jump tracking
                         jumpSequence = null;
                         jumpTimer = null;
                         lastMovedPiece = null;
                     }, JUMP_TIMEOUT);
                 } else {
-                    // Regular single move - send immediately
                     const url = `https://palamedes.onrender.com/move?move=${from}-${to}`;
-                    freezeBoard(); // Freeze the board while waiting for API response
+                    freezeBoard();
                     
                     fetch(url)
                         .then(response => {
@@ -669,18 +788,14 @@
                         });
                 }
             } else {
-                // This is a continuation of a jump sequence
                 if (from === lastMovedPiece) {
-                    // Extend the jump sequence
                     jumpSequence += `-33-${to}`;
-                    lastMovedPiece = to; // Update the last moved piece
+                    lastMovedPiece = to;
                     
-                    // Reset the timer for another 4 seconds
                     jumpTimer = setTimeout(() => {
-                        // Send the jump sequence - only if valid
                         if (jumpSequence) {
                             const url = `https://palamedes.onrender.com/move?move=${jumpSequence}`;
-                            freezeBoard(); // Freeze the board while waiting for API response
+                            freezeBoard();
                             
                             fetch(url)
                                 .then(response => {
@@ -696,126 +811,46 @@
                                 });
                         }
                             
-                        // Reset jump tracking
                         jumpSequence = null;
                         jumpTimer = null;
                         lastMovedPiece = null;
                     }, JUMP_TIMEOUT);
-                } else {
-                    // This is a different piece, so send the previous jump sequence
-                    if (jumpSequence) {
-                        const url = `https://palamedes.onrender.com/move?move=${jumpSequence}`;
-                        freezeBoard(); // Freeze the board while waiting for API response
-                        
-                        const previousSequence = jumpSequence; // Save to log it
-                        
-                        fetch(url)
-                            .then(response => {
-                                console.log(`Move sent: ${previousSequence}`);
-                                return response.text();
-                            })
-                            .then(data => {
-                                processApiResponse(data);
-                                // Start a new move/jump after the previous one completes
-                                setTimeout(() => {
-                                    if (isJump) {
-                                        jumpSequence = `${from}-33-${to}`;
-                                        lastMovedPiece = to;
-                                        
-                                        jumpTimer = setTimeout(() => {
-                                            if (jumpSequence) {
-                                                const newUrl = `https://palamedes.onrender.com/move?move=${jumpSequence}`;
-                                                freezeBoard();
-                                                
-                                                fetch(newUrl)
-                                                    .then(response => {
-                                                        console.log(`Move sent: ${jumpSequence}`);
-                                                        return response.text();
-                                                    })
-                                                    .then(data => {
-                                                        processApiResponse(data);
-                                                    })
-                                                    .catch(error => {
-                                                        console.error("Error sending move request:", error);
-                                                        unfreezeBoard();
-                                                    });
-                                            }
-                                                
-                                            jumpSequence = null;
-                                            jumpTimer = null;
-                                            lastMovedPiece = null;
-                                        }, JUMP_TIMEOUT);
-                                    } else {
-                                        const newUrl = `https://palamedes.onrender.com/move?move=${from}-${to}`;
-                                        freezeBoard();
-                                        
-                                        fetch(newUrl)
-                                            .then(response => {
-                                                console.log(`Move sent: ${from} -> ${to}`);
-                                                return response.text();
-                                            })
-                                            .then(data => {
-                                                processApiResponse(data);
-                                            })
-                                            .catch(error => {
-                                                console.error("Error sending move request:", error);
-                                                unfreezeBoard();
-                                            });
-                                    }
-                                }, 500); // Small delay before starting the new move
-                            })
-                            .catch(error => {
-                                console.error("Error sending move request:", error);
-                                unfreezeBoard();
-                            });
-                    }
-                        
-                    // Reset jump tracking for the first request
-                    jumpSequence = null;
-                    if (jumpTimer) {
-                        clearTimeout(jumpTimer);
-                        jumpTimer = null;
-                    }
-                    lastMovedPiece = null;
                 }
             }
         }
 
-        // New Game button functionality
-        document.getElementById("newGameBtn").addEventListener("click", () => {
-            freezeBoard();
-            const url = `https://palamedes.onrender.com/move?move=`;
-            fetch(url)
-                .then(response => {
-                    console.log("New game request sent");
-                    return response.text();
-                })
-                .then(data => {
-                    console.log("Response received:", data);
-                    // Refresh the page after receiving response
-                    window.location.reload();
-                })
-                .catch(error => {
-                    console.error("Error sending new game request:", error);
-                    unfreezeBoard();
-                    // Still try to refresh even if there was an error
-                    window.location.reload();
-                });
-        });
-
-        // Handle window resize
         window.addEventListener("resize", updatePiecePositions);
 
-        // Initialize the game
-        createBoard();
+        // Make global functions available
+        window.createPieces = createPieces;
+        window.pieces = pieces;
+        window.updatePiecePositions = updatePiecePositions;
+        window.rebuildPiecesState = rebuildPiecesState;
+
+        // Create pieces immediately
         createPieces();
-        
-        // After pieces are created and positioned, track their locations
-        setTimeout(() => {
-            updatePiecePositions();
-            rebuildPiecesState();
-        }, 200);
+
+        function createPieces() {
+            [...redPieces, ...grayPieces].forEach(num => {
+                let piece = document.createElement("div");
+                piece.classList.add("piece");
+                piece.classList.add(redPieces.includes(num) ? "red" : "gray");
+                piece.dataset.position = num;
+                pieces[num] = piece;
+                document.body.appendChild(piece);
+                
+                piece.addEventListener("mousedown", dragStart);
+            });
+            
+            setTimeout(() => {
+                updatePiecePositions();
+                rebuildPiecesState();
+            }, 100);
+        }
     }
+
+    // Global pieces object
+    let pieces = {};
     </script>
 </body>
 </html>
